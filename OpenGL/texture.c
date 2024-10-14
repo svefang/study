@@ -1,38 +1,15 @@
 /**
- * @brief: gcc window.c -o window -lGL -lglfw -lGLEW
+ * @brief:  gcc texture.c -o texture  -lGL -lglfw -lGLEW  -lSOIL -lm
  * */
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <SOIL/SOIL.h>
 #include <stdio.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <unistd.h>
 
 GLfloat color[] = {0.2f, 0.3f, 0.3f};
-
-/*
- * 着色器语言 CLSL,需要运行时编译
- * in: 声明一个输入变量
- * out:声明一个输出变量
- */
-//OpenGL是一个大的状态机，对数据的任何操作，都需要从最开始往后传入
-//vec4中有四个属性，前三个分别为x,y,z轴座标，最后一个为透视划分
-#if 0 //颜色不变
-const GLchar *vertexShaderSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 position;\n"
-    "void main()\n"
-    "{\n"
-    "gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
-    "}\0";
-
-const GLchar *fragmentShaderSource = "#version 330 core\n"
-    "out vec4 color;\n"
-    "void main()\n"
-    "{\n"
-    "color = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n" 
-    "}\n\0";
-
-#endif
-// 颜色可变 ,必须通过顶点着色器传入
 
 const GLchar *vertexShaderSource = "#version 330 core\n"
     "layout (location = 0) in vec3 position;\n"
@@ -52,43 +29,49 @@ const GLchar *fragmentShaderSource = "#version 330 core\n"
     "color = changeColor;\n" 
     "}\n\0";
 
-bool isResize = false;
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode)
 {
-    //if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-    //    if (!isResize) {
-    //        glfwSetWindowSize(window, 300, 300);
-    //        isResize = true;
-    //    } else {
-    //        glfwSetWindowSize(window, 800, 600);
-    //        isResize = false;
-    //    }
-    //}
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
-#if 0
 GLfloat vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-     0.5f, -0.5f, 0.0f,
-     0.0f,  0.5f, 0.0f,
-};
-#endif
-// 坐标 + 颜色
-GLfloat vertices[] = {
-    //position
-    -0.8f, -0.8f, 0.0f,
-     0.8f, -0.8f, 0.0f,
-     0.8f,  0.8f, 0.0f,
-    -0.8f,  0.8f, 0.0f,
+    //position            // color            //texture
+    -0.8f, -0.8f, 0.0f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+     0.8f, -0.8f, 0.0f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+     0.8f,  0.8f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
+    -0.8f,  0.8f, 0.0f,  1.0f, 1.0f, 0.0f,   0.0f, 1.0f,
 };
 
 GLuint indexes[] = {
-    0, 1 ,2 ,3,0
+    0, 1 ,2 ,3, 0
 };
-int main()
+
+/**
+ * 纹理坐标的范围是(0,0) 到 (1,1)，如果超过此范围，则会有以下几种情况
+ *  1. GL_REPEAT : 重复纹理           |
+ *  2. GL_MIRRORED_REPEAT: 镜像纹理   |  可通过glTexParameteri(GL_TERTURE_2D, GL_TEXTURE_WRAP_S, GL_MINRRORED_REPEAT)
+                                      |   和glTexParameteri(GL_TERTURE_2D, GL_TEXTURE_WRAP_T, GL_MINRRORED_REPEAT)进行设置
+ *  3. GL_GLAMP_TO_EDGE: 边缘拉伸     |
+ *  4. GL_CLAMP_TO_BORDER: 超出部分为用户指定的颜色 使用glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, color[]);
+ * */
+//纹理颜色
+GLfloat texColor[] = {
+    0.0f, 0.0f,
+    0.0f, 0.8f,
+    0.8f, 0.8f,
+    0.8f ,0.0f
+};
+
+
+
+
+int main(int argc, char *argv[])
 {
+    if (argc != 2) {
+        printf("Usage: %s picture path\n", argv[0]); 
+        return -1;
+    }
     // init GLFW
     glfwInit();
     // set GLFW
@@ -114,29 +97,31 @@ int main()
         return -1; 
     }
     
-    //如果此处设置的宽度与高度比glfwCreateWindow中的小，则后续渲染时只会在这个范围内，剩余的部分则空出来
     int weight, high;
     glfwGetFramebufferSize(window, &weight, &high);
     glViewport(0, 0, weight, high);
 
-    //function prototype    
-    //void key_callbakc(GLFWwindow * window, int key, int scancode, int action, int mode)
     glfwSetKeyCallback(window, key_callback);
     
-    /**
-     * @brief: 
-     *      1. 创建着色器
-     *      2. 编写顶点着色器源码
-     *      3. 编写片段着色器源码
-     *      4. 将着色器源码附着到着色器上
-     *      5. 编译着色器
-     *      6. 创建着色器对象，并将生成的顶点着色器与片段着色器附着到对象上
-     *      7. 链接生成着色器程序对象
-     *      8. 告诉OpenGL如何解释缓冲中的数据
-     *      
-     * */
+    
+    int image_width, image_height;
 
+    assert(argv[1]);
+    unsigned char *image = SOIL_load_image(argv[1], &image_width, &image_height, 0, SOIL_LOAD_RGB);
 
+    // ===============================
+    //生成纹理
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    
+    SOIL_free_image_data(image);
+    glBindTexture(GL_TEXTURE_2D, 0);//解绑
+
+    // ===============================
     //创建着色器
     GLuint vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -182,15 +167,6 @@ int main()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-
-    //create OpenGL vbo    
-    /*
-     * VBO: vertex buffer object: 顶点缓冲对象
-     * 顶点着色器会在GPU上创建内存用于存储顶点数据，同时还要告诉OpenGL如何解释内存中的数据,并指定其如何发送给显卡,而
-     * 顶点缓冲对象就是用来管理这这篇内存的
-     * VAO: vertex array object: 顶点数组对象
-     * 当有多个顶点缓冲对象时，使用VAO来存储
-     * */
     GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -209,25 +185,6 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexes), indexes, GL_STATIC_DRAW);
 
-    /**
-     * 告诉OpenGL如何解析顶点着色数据
-     * 内存格式：
-     * 
-     *  Byte   0   4   8  12  16  20  24  28  32  36  40  44  48
-     *         |-----------|-----------|-----------|-----------|
-     *         | x | y | z | x | y | z | x | y | z | R | G | B |
-     *  position                                   color
-     */
-    /*
-     *   GLAPI void APIENTRY glVertexAttribPointer (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
-     *      @index: 指定顶点的属性，与VertexShaderSource中layout中 location对应      
-     *      @size: 属性的大小
-     *      @type: 顶点数据的类型
-     *      @normalized:是否希望数据被标准化，如何设置为GL_TRUE,则所有的数据会被映射到0 - 1, （signed的类型为 -1 - 1）
-     *      @stride:数据的步长，告诉OpenGL顶点数据属性组的间隔
-     *      @pointer:数据在缓冲中的偏移
-     *
-     * */
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
     glEnableVertexAttribArray(0);
 
@@ -252,18 +209,12 @@ int main()
         glBindVertexArray(0);        
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        /*
-         * GLAPI void APIENTRY glBufferSubData (GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
-         *  该函数允许更新缓冲对象中的部分数据
-         *  @target:指定更新数据的缓冲对象目标， 常见的有：GL_ARRAY_BUFFER(顶点属性), GL_ELEMENT_ARRAY_BUFFER(索引缓冲区), GL_UNIFORM_BUFFER(统一变量缓冲区)
-         */
-        //glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 
-        //swap buffer ???
         glfwSwapBuffers(window);
     }
-
+    glDeleteBuffers(1, &EBO);
     glDeleteBuffers(1, &VBO);
+    
     glfwTerminate();
     return 0;
 }
