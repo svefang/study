@@ -14,19 +14,24 @@ GLfloat color[] = {0.2f, 0.3f, 0.3f};
 const GLchar *vertexShaderSource = "#version 330 core\n"
     "layout (location = 0) in vec3 position;\n"
     "layout (location = 1) in vec3 color;\n"
+    "layout (location = 2) in vec2 texcolor;\n"
     "out vec4 changeColor;\n" //顶点着色器的输出，会被作为片段着色器的输入
+    "out vec2 texColor;\n" 
     "void main()\n"
     "{\n"
-    "gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
-    "changeColor = vec4(color, 1.0f);\n"
+    "gl_Position = vec4(position, 1.0f);\n"
+    "texColor = texcolor;\n"
     "}\0";
 
 const GLchar *fragmentShaderSource = "#version 330 core\n"
     "in vec4 changeColor;\n"
+    "in vec2 texColor;\n"
+
     "out vec4 color;\n"
+    "uniform sampler2D ourTexture;\n"
     "void main()\n"
     "{\n"
-    "color = changeColor;\n" 
+    "color = texture(ourTexture, texColor);\n" 
     "}\n\0";
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode)
@@ -41,6 +46,7 @@ GLfloat vertices[] = {
      0.8f, -0.8f, 0.0f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
      0.8f,  0.8f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
     -0.8f,  0.8f, 0.0f,  1.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+    -0.8f, -0.8f, 0.0f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
 };
 
 GLuint indexes[] = {
@@ -104,24 +110,7 @@ int main(int argc, char *argv[])
     glfwSetKeyCallback(window, key_callback);
     
     
-    int image_width, image_height;
 
-    assert(argv[1]);
-    unsigned char *image = SOIL_load_image(argv[1], &image_width, &image_height, 0, SOIL_LOAD_RGB);
-
-    // ===============================
-    //生成纹理
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    
-    SOIL_free_image_data(image);
-    glBindTexture(GL_TEXTURE_2D, 0);//解绑
-
-    // ===============================
     //创建着色器
     GLuint vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -182,17 +171,44 @@ int main(int argc, char *argv[])
     //将顶点数据复制到缓冲的内存中
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexes), indexes, GL_STATIC_DRAW);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexes), indexes, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid *)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) (12 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid *) (3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid *) (6 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(2);
+
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    // ===============================
+    //生成纹理
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    int image_width, image_height;
+    assert(argv[1]);
+    unsigned char *image = SOIL_load_image(argv[1], &image_width, &image_height, 0, SOIL_LOAD_RGB);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    
+    SOIL_free_image_data(image);
+    glBindTexture(GL_TEXTURE_2D, 0);//解绑
+
+    // ===============================
 
     while (!glfwWindowShouldClose(window)) {
         // check events
@@ -200,15 +216,18 @@ int main(int argc, char *argv[])
         //drawing
         glClearColor(color[0], color[1], color[2], 1.0f);        
         glClear(GL_COLOR_BUFFER_BIT);        
+
+        glBindTexture(GL_TEXTURE_2D, texture);
         //激活此对象 
         glUseProgram(shaderProgram);
     
         glBindVertexArray(VAO);        
         //glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_LINE_STRIP, 5, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 5);
+        //glDrawElements(GL_LINE_STRIP, 5, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);        
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        //glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
         glfwSwapBuffers(window);
     }
