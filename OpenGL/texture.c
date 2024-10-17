@@ -19,7 +19,8 @@ const GLchar *vertexShaderSource = "#version 330 core\n"
     "out vec2 texColor;\n" 
     "void main()\n"
     "{\n"
-    "gl_Position = vec4(position, 1.0f);\n"
+    //反转y轴 jpg格式的图片坐标系可能与坐标系不一致
+    "gl_Position = vec4(position.x, 0.0 - position.y, position.z, 1.0f);\n"
     "texColor = texcolor;\n"
     "}\0";
 
@@ -40,15 +41,22 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
+//GLfloat vertices[] = {
+//    //position            // color            //texture
+//    -0.8f, -0.8f, 0.0f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+//     0.8f, -0.8f, 0.0f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+//     0.8f,  0.8f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
+//    -0.8f,  0.8f, 0.0f,  1.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+//    -0.8f, -0.8f, 0.0f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+//};
+//顶点顺序要严格保持一直
 GLfloat vertices[] = {
     //position            // color            //texture
-    -0.8f, -0.8f, 0.0f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
-     0.8f, -0.8f, 0.0f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
-     0.8f,  0.8f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
-    -0.8f,  0.8f, 0.0f,  1.0f, 1.0f, 0.0f,   0.0f, 1.0f,
-    -0.8f, -0.8f, 0.0f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+     1.0f,  1.0f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
+     1.0f, -1.0f, 0.0f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+    -1.0f,  1.0f, 0.0f,  1.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+    -1.0f, -1.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
 };
-
 GLuint indexes[] = {
     0, 1 ,2 ,3, 0
 };
@@ -87,7 +95,8 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     
     //create window
-    GLFWwindow * window = glfwCreateWindow(800, 600, "OpenGL test", NULL, NULL);
+    //2K = 2560 * 1440
+    GLFWwindow * window = glfwCreateWindow(980, 610, "OpenGL test", NULL, NULL);
     if (window == NULL) {
         printf("create window error\n");
         glfwTerminate();
@@ -223,7 +232,7 @@ int main(int argc, char *argv[])
     
         glBindVertexArray(VAO);        
         //glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 5);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         //glDrawElements(GL_LINE_STRIP, 5, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);        
 
