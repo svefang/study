@@ -1,4 +1,0 @@
-/home/fang/01-code/study/unpv/IPC/pipe/build/CMakeFiles/client.dir
-/home/fang/01-code/study/unpv/IPC/pipe/build/CMakeFiles/server.dir
-/home/fang/01-code/study/unpv/IPC/pipe/build/CMakeFiles/edit_cache.dir
-/home/fang/01-code/study/unpv/IPC/pipe/build/CMakeFiles/rebuild_cache.dir
