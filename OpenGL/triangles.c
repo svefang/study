@@ -6,24 +6,31 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <stdlib.h>
 
-GLfloat color[] = {0.2f, 0.3f, 0.3f};
+GLfloat color[] = {0.6f, 0.3f, 0.4f};
 
 bool colorIncreasing = true;
 void changeColor(float deltaTime)
 {
+    //color[0] = (float)rand() / RAND_MAX;
+    //color[1] = (float)rand() / RAND_MAX;
+    //color[2] = (float)rand() / RAND_MAX;
+
     if (colorIncreasing) {
-        color[0] -= deltaTime;  
-        color[1] += deltaTime;  
+        color[0] += deltaTime;  
+        color[1] -= deltaTime;  
         color[2] -= deltaTime;  
-        if (color[0] <= 0.0f || color[2] <= 0.0f) {
+        if (color[0] >= 1.0f || color[2] <= 0.0f || color[1]
+            <= 0.0f) {
             colorIncreasing = false; 
         }
     } else {
-        color[0] += deltaTime;  
-        color[1] -= deltaTime;  
+        color[0] -= deltaTime;  
+        color[1] += deltaTime;  
         color[2] += deltaTime;  
-        if (color[1] <= 0.0f) {
+        if (color[1] <= 0.0f || color[1] >= 1.0f || color[2] 
+            >= 1.0f) {
             colorIncreasing = true; 
         }
     
@@ -241,6 +248,7 @@ int main()
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     
+    //GLAPI void APIENTRY glGenVertexArrays (GLsizei n, GLuint *arrays);
     glBindVertexArray(VAO);
 
     //buffer type: GL_ARRAY_BUFFER, 
@@ -259,6 +267,7 @@ int main()
      *  position                                   color
      */
     /*
+     *   作用：定义顶点属性的布局，告诉OpenGL如何解释缓冲中的顶点数据
      *   GLAPI void APIENTRY glVertexAttribPointer (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
      *      @index: 指定顶点的属性，与VertexShaderSource中layout中 location对应      
      *      @size: 属性的大小
@@ -269,6 +278,7 @@ int main()
      *
      * */
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
+    //启动顶点属性，默认是禁止的
     glEnableVertexAttribArray(0);
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) (9 * sizeof(GLfloat)));
@@ -281,7 +291,8 @@ int main()
         // check events
         glfwPollEvents();
         //drawing
-        glClearColor(color[0], color[1], color[2], 1.0f);        
+        //glClearColor(color[0], color[1], color[2], 1.0f);        
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);        
         glClear(GL_COLOR_BUFFER_BIT);        
         //激活此对象 
         glUseProgram(shaderProgram);
@@ -290,8 +301,9 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindVertexArray(0);        
     
+        #if 0 //change vertex position
         changeVertices(0.04);
-
+        #endif
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         /*
          * GLAPI void APIENTRY glBufferSubData (GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
@@ -300,12 +312,14 @@ int main()
          */
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 
-        changeColor(0.02);
-        glBufferSubData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 9, 3 * sizeof(GLfloat), color);
+        //changeColor(0.01);
+        //glBufferSubData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 9, 3 * sizeof(GLfloat), color);
+
         //swap buffer ???
         glfwSwapBuffers(window);
     }
 
+    glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glfwTerminate();
     return 0;
