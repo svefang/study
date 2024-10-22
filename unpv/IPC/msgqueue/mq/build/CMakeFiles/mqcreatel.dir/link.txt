@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/mqcreatel.dir/src/log.c.o CMakeFiles/mqcreatel.dir/src/mqcreatel.c.o -o mqcreatel 

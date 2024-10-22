@@ -1,0 +1,3 @@
+/home/fang/01-code/study/unpv/IPC/msgqueue/mq/build/CMakeFiles/mqcreatel.dir
+/home/fang/01-code/study/unpv/IPC/msgqueue/mq/build/CMakeFiles/edit_cache.dir
+/home/fang/01-code/study/unpv/IPC/msgqueue/mq/build/CMakeFiles/rebuild_cache.dir
